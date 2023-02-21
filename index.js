@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
-const cheerio = require("cheerio");
+const mysql = require('mysql2');
 
 const file_name = "20221125.csv";
 const file_path = path.join(__dirname, file_name);
@@ -11,7 +11,7 @@ console.log(file_path);
 const csv = fs.readFileSync(file_path, "utf-8");
 const rows = csv.split("\r\n");
 
-init(rows);
+// init(rows);
 
 async function init(rows) {
     let index = 0
@@ -29,6 +29,7 @@ async function init(rows) {
         const searchName = storeName + " " + storeAddress;
         console.log(storeName);
         if(index > 0){
+            console.log(index);
             await searchPuppeteer(searchName);
         }
         index++
@@ -39,12 +40,12 @@ async function init(rows) {
 // puppeteer & cheerio
 const result = {};
 async function searchPuppeteer(searchName) {
-    const browser = await puppeteer.launch({headless: false, devtools: true,});
+    const browser = await puppeteer.launch({headless: true, devtools: false,});
     const page = await browser.newPage();
     await page.setViewport({width: 1000, height: 10000});
     await page.goto("https://map.naver.com/v5/search/" + searchName);
     await page.waitForTimeout(1000);
-    await page.setDefaultTimeout(5000)
+    await page.setDefaultTimeout(5000);
     let frame;
     // 검색결과가 없는경우 빠르게 브라우저를 닫아주기 위한 timer.
     const timer = setTimeout(() => {
@@ -150,3 +151,41 @@ async function checkMenu(page) {
     }
     return menu;
 }
+class DB {
+    constructor() {
+        this.connectionInfo = {
+            host: 'localhost',
+            port: '3306',
+            user: 'root',
+            password: '123123123',
+            database: 'powerfulDaegu'
+        };
+        this.connection = mysql.createConnection(this.connectionInfo);
+        this.storeType = {
+            10:"치킨/찜닭", 11:"중식", 12:"분식", 13:"한식", 14:"찜/탕", 15:"피자", 16:"족발/보쌈", 17:"패스트푸드", 18:"돈까스/일식", 19:"도시락/죽", 20:"카페/디저트", 21:"아시안/양식", 22:"반찬/신선", 23:"편의점"
+        }
+        this.connection.connect();
+    }
+
+    saveStroeType() {
+        console.log(this.storeType);
+        for(const key in this.storeType) {
+            const code = parseInt(key)
+            const query = `INSERT INTO 'store_type' (food_code, category) VALUES (${code}, '${this.storeType[key]}');` 
+            this.connection.query(query, function(err, results, fields) {
+                if(err) {
+                    console.log(err);
+                }
+                console.log(results);
+                console.log(fields);
+            })
+        }
+    }
+
+    saveStore() {
+
+    }
+}
+
+const db = new DB();
+db.saveStroeType();
